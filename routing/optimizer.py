@@ -71,14 +71,16 @@ def plan_fuel_stops(
     if route_miles <= EPS:
         return FuelPlan([], 0.0, 0.0)
 
-    if fuel <= EPS:
-        nearby = [s for s in ordered if s.route_mile <= start_radius_miles + EPS]
-        if not nearby:
-            raise NoFuelNearStart(f"No fuel station within {start_radius_miles:.0f} miles of the start.")
-        # Fuel before departing: the cheapest station near the origin counts as mile 0.
+    nearby = [s for s in ordered if s.route_mile <= start_radius_miles + EPS]
+    if nearby:
+        # Fuel before departing: the cheapest station near the origin counts as mile 0. Stations at or
+        # before it cost at least as much and are already "behind" the truck, so they are dropped.
         current = min(nearby, key=lambda s: (s.price, s.route_mile))
+        ordered = [s for s in ordered if s is current or s.route_mile > current.route_mile + EPS]
+    elif fuel <= EPS:
+        raise NoFuelNearStart(f"No fuel station within {start_radius_miles:.0f} miles of the start.")
     else:
-        current = None  # at the origin with fuel already in the tank
+        current = None  # no station near the origin, but fuel already in the tank
 
     while True:
         ahead = [

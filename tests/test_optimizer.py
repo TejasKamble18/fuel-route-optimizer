@@ -70,3 +70,45 @@ def test_cheapest_station_near_start_is_used_first():
     plan = plan_fuel_stops(stations, 300.0)
     assert stops_summary(plan) == [(2, 30.0, 90.0)]
     assert plan.stops[0].route_mile == 20.0
+
+
+def test_small_start_fuel_still_uses_station_in_origin_town():
+    stations = [FuelStation(1, 0.0, 3.0), FuelStation(2, 35.0, 3.2)]
+    plan = plan_fuel_stops(stations, 300.0, start_fuel_gallons=2.0)
+    assert stops_summary(plan) == [(1, 28.0, 84.0)]
+
+
+def test_more_start_fuel_never_costs_more():
+    stations = [FuelStation(1, 0.0, 2.0), FuelStation(2, 50.0, 4.0)]
+    costs = [plan_fuel_stops(stations, 500.0, start_fuel_gallons=g).total_cost for g in (0, 10, 25, 50)]
+    assert costs == sorted(costs, reverse=True)
+
+
+def test_no_duplicate_stop_after_filling_at_start():
+    stations = [FuelStation(1, 20.0, 3.00), FuelStation(2, 5.0, 3.01),
+                FuelStation(3, 400.0, 3.50), FuelStation(4, 800.0, 3.20)]
+    plan = plan_fuel_stops(stations, 1000.0)
+    assert stops_summary(plan) == [(1, 50.0, 150.0), (3, 30.0, 105.0), (4, 20.0, 64.0)]
+
+
+def test_random_plans_are_physically_consistent():
+    import random
+
+    rng = random.Random(7)
+    checked = 0
+    for _ in range(400):
+        route = rng.uniform(50, 2500)
+        stations = [FuelStation(i, rng.uniform(0, route), round(rng.uniform(2.7, 4.2), 3)) for i in range(rng.randint(1, 40))]
+        start_fuel = rng.choice([0.0, 0.0, 2.0, 15.0, 50.0])
+        try:
+            plan = plan_fuel_stops(stations, route, start_fuel_gallons=start_fuel)
+        except (RangeGap, NoFuelNearStart):
+            continue
+        checked += 1
+        keys = [s.key for s in plan.stops]
+        assert len(keys) == len(set(keys)), "a station appears twice"
+        miles = [s.route_mile for s in plan.stops]
+        assert miles == sorted(miles), "stops go backwards"
+        assert all(s.gallons <= 50.0 + 1e-6 for s in plan.stops)
+        assert plan.total_gallons == pytest.approx(max(route / 10 - start_fuel, 0.0), abs=1e-6)
+    assert checked > 50
