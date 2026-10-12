@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fuel route: {{ plan.start.label }} to {{ plan.finish.label }}</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    html, body, #map { height: 100%; margin: 0; }
+    .panel { position: absolute; top: 12px; right: 12px; z-index: 1000; background: #fff; padding: 12px 16px;
+             border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.2); font: 14px/1.45 system-ui, sans-serif;
+             max-width: 300px; max-height: 80vh; overflow: auto; }
+    .panel h1 { font-size: 15px; margin: 0 0 6px; }
+    .panel ol { padding-left: 18px; margin: 8px 0 0; }
+    .pin { background: #1d4ed8; color: #fff; border-radius: 50%; width: 26px; height: 26px; display: flex;
+           align-items: center; justify-content: center; font: 600 13px system-ui; border: 2px solid #fff;
+           box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="panel" id="panel"></div>
+  {{ plan|json_script:"plan-data" }}
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const plan = JSON.parse(document.getElementById('plan-data').textContent);
+    const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const map = L.map('map');
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18, attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    const line = L.polyline(plan.route.geometry.coordinates.map(([lon, lat]) => [lat, lon]),
+                            { color: '#2563eb', weight: 5, opacity: .85 }).addTo(map);
+    map.fitBounds(line.getBounds(), { padding: [40, 40] });
+    L.circleMarker([plan.start.lat, plan.start.lon], { radius: 9, color: '#fff', weight: 2, fillColor: '#16a34a', fillOpacity: 1 })
+      .addTo(map).bindPopup('Start: ' + esc(plan.start.label));
+    L.circleMarker([plan.finish.lat, plan.finish.lon], { radius: 9, color: '#fff', weight: 2, fillColor: '#dc2626', fillOpacity: 1 })
+      .addTo(map).bindPopup('Finish: ' + esc(plan.finish.label));
+    plan.fuel_stops.forEach((s) => {
+      const icon = L.divIcon({ className: '', html: `<div class="pin">${s.order}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] });
+      L.marker([s.lat, s.lon], { icon }).addTo(map).bindPopup(
+        `<b>${s.order}. ${esc(s.name)}</b><br>${esc(s.address)}<br>${esc(s.city)}, ${esc(s.state)}<br>` +
+        `Mile ${s.route_mile} &middot; $${s.price_per_gallon.toFixed(3)}/gal<br>${s.gallons} gal &middot; $${s.cost.toFixed(2)}`);
+    });
+    const stops = plan.fuel_stops.map((s) =>
+      `<li>${esc(s.city)}, ${esc(s.state)}: ${s.gallons} gal @ $${s.price_per_gallon.toFixed(3)}</li>`).join('');
+    document.getElementById('panel').innerHTML =
+      `<h1>${esc(plan.start.label)} &rarr; ${esc(plan.finish.label)}</h1>` +
+      `${plan.route.distance_miles} mi &middot; ${plan.route.duration_hours} h<br>` +
+      `<b>${plan.totals.stops} fuel stops &middot; ${plan.totals.gallons} gal &middot; $${plan.totals.fuel_cost.toFixed(2)}</b>` +
+      (stops ? `<ol>${stops}</ol>` : '');
+  </script>
+</body>
+</html>
