@@ -73,3 +73,20 @@ def test_geocode_no_match():
 def test_missing_key_rejected():
     with pytest.raises(ORSError, match="not configured"):
         ORSClient("", BASE)
+
+
+@responses.activate
+def test_reverse_country():
+    responses.get(f"{BASE}/pelias/v1/reverse", json={"features": [{
+        "geometry": {"coordinates": [-117.03, 32.52]},
+        "properties": {"label": "Mexico", "country_a": "MEX"},
+    }]})
+    assert client().reverse_country(32.52, -117.03) == "MEX"
+    sent = responses.calls[0].request.url
+    assert "layers=country" in sent and "point.lat=32.52" in sent
+
+
+@responses.activate
+def test_reverse_country_no_match():
+    responses.get(f"{BASE}/pelias/v1/reverse", json={"features": []})
+    assert client().reverse_country(0.0, -150.0) is None

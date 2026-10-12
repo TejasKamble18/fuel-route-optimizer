@@ -99,10 +99,11 @@ All errors are JSON: `{"error": "<code>", "detail": "<message>"}`.
 input ─► geocode (local, 0 calls) ─► route (1 ORS call) ─► stations near route ─► greedy optimiser ─► cache
 ```
 
-1. **Geocoding.** `"City, ST"` and `"lat,lon"` resolve locally from the US Census
-   places list (32,000+ places). Anything else falls back to OpenRouteService's
-   geocoder. Non-US input is rejected. So a typical request makes **one** external
-   call; the worst case is three.
+1. **Geocoding.** `"City, ST"` resolves locally from the US Census places list
+   (32,000+ places). `"lat,lon"` is checked with one reverse lookup of the country, so
+   border cities like Tijuana or Toronto are rejected. Anything else falls back to
+   OpenRouteService's geocoder. Non-US input is rejected. So a typical request makes
+   **one** external call; the worst case is three.
 2. **Routing.** One call to OpenRouteService's `driving-hgv` (heavy goods vehicle)
    profile, which respects truck restrictions.
 3. **Stations near the route.** The route is resampled every mile. A grid prefilter

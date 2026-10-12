@@ -96,7 +96,9 @@ def geocode(text: str, *, places: PlaceIndex, client) -> Location:
         lat, lon = latlon
         if not (-90 <= lat <= 90 and -180 <= lon <= 180):
             raise LocationNotFound(f"'{text}' is not a valid latitude,longitude pair.")
-        if not in_usa(lat, lon):
+        # The bounding boxes reject most points for free; border cities such as Tijuana or Toronto
+        # fall inside them, so confirm the country with one reverse lookup.
+        if not in_usa(lat, lon) or client.reverse_country(lat, lon) not in ("US", "USA"):
             raise OutsideUSA(f"'{text}' is outside the USA.")
         return Location(text, lat, lon, f"{lat:.5f}, {lon:.5f}", "coordinates")
 

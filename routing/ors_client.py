@@ -6,6 +6,7 @@ import requests
 METERS_PER_MILE = 1609.344
 DIRECTIONS_PATH = "/openrouteservice/v2/directions/driving-hgv/geojson"
 SEARCH_PATH = "/pelias/v1/search"
+REVERSE_PATH = "/pelias/v1/reverse"
 
 
 @dataclass(frozen=True)
@@ -82,6 +83,15 @@ class ORSClient:
             distance_miles=float(summary.get("distance", 0.0)) / METERS_PER_MILE,
             duration_hours=float(summary.get("duration", 0.0)) / 3600.0,
         )
+
+    def reverse_country(self, lat: float, lon: float) -> str | None:
+        """ISO country code of the country containing the point (e.g. "USA", "MEX"), or None."""
+        data = self._request("GET", REVERSE_PATH, params={"point.lat": lat, "point.lon": lon, "layers": "country", "size": 1})
+        features = data.get("features") or []
+        if not features:
+            return None
+        props = features[0].get("properties", {})
+        return (props.get("country_a") or props.get("country_code") or "").upper() or None
 
     def geocode(self, text: str) -> GeocodeResult | None:
         data = self._request("GET", SEARCH_PATH, params={"text": text, "size": 1})

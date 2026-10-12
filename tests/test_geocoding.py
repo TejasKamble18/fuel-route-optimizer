@@ -9,13 +9,18 @@ PLACES = PlaceIndex({("TX", "dallas"): (32.78, -96.80), ("IL", "chicago"): (41.8
 
 
 class FakeClient:
-    def __init__(self, result=None):
+    def __init__(self, result=None, country="USA"):
         self.result = result
+        self.country = country
         self.calls = []
 
     def geocode(self, text):
         self.calls.append(text)
         return self.result
+
+    def reverse_country(self, lat, lon):
+        self.calls.append((lat, lon))
+        return self.country
 
 
 def test_parse_latlon():
@@ -43,8 +48,19 @@ def test_local_lookup_makes_no_api_call():
 
 
 def test_coordinates_inside_usa():
-    loc = geocode("41.88,-87.63", places=PLACES, client=FakeClient())
+    client = FakeClient(country="USA")
+    loc = geocode("41.88,-87.63", places=PLACES, client=client)
     assert loc.source == "coordinates"
+    assert client.calls == [(41.88, -87.63)]
+
+
+@pytest.mark.parametrize("text,country", [
+    ("32.52,-117.03", "MEX"),  # Tijuana, inside the contiguous-US bounding box
+    ("43.65,-79.38", "CAN"),   # Toronto
+])
+def test_border_city_coordinates_rejected(text, country):
+    with pytest.raises(OutsideUSA):
+        geocode(text, places=PLACES, client=FakeClient(country=country))
 
 
 def test_coordinates_outside_usa():
