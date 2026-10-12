@@ -21,6 +21,8 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
 ]
+# The map page loads OpenStreetMap tiles, which are refused without a Referer header.
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {

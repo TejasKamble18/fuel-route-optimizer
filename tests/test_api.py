@@ -119,3 +119,11 @@ def test_map_page(client, fake):
 
 def test_unknown_map_is_404(client, fake):
     assert client.get("/api/route/doesnotexist/map/").status_code == 404
+
+
+def test_map_page_sends_origin_referrer_for_osm_tiles(client, fake):
+    # tile.openstreetmap.org rejects tile requests that carry no Referer; Django defaults to same-origin.
+    body = client.get("/api/route/", {"start": "Alpha, KS", "finish": "Omega, MO"}).json()
+    page = client.get(f"/api/route/{body['route_id']}/map/")
+    assert page["Referrer-Policy"] == "strict-origin-when-cross-origin"
+    assert b"tile.openstreetmap.org" in page.content
