@@ -42,3 +42,9 @@ def test_single_point_route():
     index = StationIndex.from_rows([station(1, 40.0, -100.0)])
     hits = stations_along_route(index, [[-100.0, 40.0], [-100.0, 40.0]], corridor_miles=10)
     assert [h.route_mile for h in hits] == [0.0]
+
+
+def test_station_near_corridor_edge_in_neighbouring_cell():
+    index = StationIndex.from_rows([station(1, 40.0 - 9.5 / 69.0, -95.0), station(2, 40.0 - 10.5 / 69.0, -95.0)])
+    hits = stations_along_route(index, ROUTE, corridor_miles=10)
+    assert [index.describe(h.station)["opis_id"] for h in hits] == [1]

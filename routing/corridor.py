@@ -30,19 +30,27 @@ def resample_route(coords_lonlat, step_miles: float = 1.0):
     return np.interp(samples, cum, lat), np.interp(samples, cum, lon), samples
 
 
+def _candidates_near(index, lat, lon, corridor_miles: float) -> np.ndarray:
+    """Stations in grid cells next to the route. Cells are at least `corridor_miles` wide,
+    so any station within the corridor sits in a route cell or one of its 8 neighbours."""
+    cell_lat = corridor_miles / MILES_PER_DEGREE_LAT
+    widest = min(float(np.abs(lat).max()) + cell_lat, 89.0)
+    cell_lon = cell_lat / np.cos(np.radians(widest))
+
+    def keys(lats, lons):
+        return np.floor(lats / cell_lat).astype(np.int64) * 100_000 + np.floor(lons / cell_lon).astype(np.int64)
+
+    route_keys = np.unique(keys(lat, lon))
+    near = np.unique((route_keys[:, None] + np.array([dr * 100_000 + dc for dr in (-1, 0, 1) for dc in (-1, 0, 1)])).ravel())
+    return np.flatnonzero(np.isin(keys(index.lat, index.lon), near))
+
+
 def stations_along_route(index, coords_lonlat, corridor_miles: float, *, route_miles=None, step_miles: float = 1.0):
     lat, lon, miles = resample_route(coords_lonlat, step_miles)
     if route_miles and miles[-1] > 0:
         miles = miles * (route_miles / miles[-1])  # align with the road distance OpenRouteService reports
 
-    pad_lat = corridor_miles / MILES_PER_DEGREE_LAT
-    widest = min(float(np.abs(lat).max()) + pad_lat, 89.0)
-    pad_lon = corridor_miles / (MILES_PER_DEGREE_LAT * np.cos(np.radians(widest)))
-    mask = (
-        (index.lat >= lat.min() - pad_lat) & (index.lat <= lat.max() + pad_lat)
-        & (index.lon >= lon.min() - pad_lon) & (index.lon <= lon.max() + pad_lon)
-    )
-    candidates = np.flatnonzero(mask)
+    candidates = _candidates_near(index, lat, lon, corridor_miles)
 
     hits = []
     for start in range(0, len(candidates), CHUNK):
