@@ -1,0 +1,78 @@
+{
+  "info": {
+    "name": "Fuel Route Optimizer",
+    "description": "Truck route between two US locations with the cheapest fuel stops (500-mile range, 10 mpg).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://127.0.0.1:8000" }
+  ],
+  "item": [
+    {
+      "name": "Chicago → Dallas (POST)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/route/",
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"Chicago, IL\",\n  \"finish\": \"Dallas, TX\"\n}" }
+      }
+    },
+    {
+      "name": "New York → Los Angeles (POST)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/route/",
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"New York, NY\",\n  \"finish\": \"Los Angeles, CA\"\n}" }
+      }
+    },
+    {
+      "name": "Coordinates → Denver (GET)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/route/?start=41.8781,-87.6298&finish=Denver, CO",
+          "host": ["{{base_url}}"],
+          "path": ["api", "route", ""],
+          "query": [
+            { "key": "start", "value": "41.8781,-87.6298" },
+            { "key": "finish", "value": "Denver, CO" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "With 30 gallons already in the tank (POST)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/route/",
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"Atlanta, GA\",\n  \"finish\": \"Houston, TX\",\n  \"start_fuel_gallons\": 30\n}" }
+      }
+    },
+    {
+      "name": "Error: outside USA (GET)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{base_url}}/api/route/?start=Toronto, ON&finish=Dallas, TX",
+          "host": ["{{base_url}}"],
+          "path": ["api", "route", ""],
+          "query": [
+            { "key": "start", "value": "Toronto, ON" },
+            { "key": "finish", "value": "Dallas, TX" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Error: missing finish (POST)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/api/route/",
+        "body": { "mode": "raw", "raw": "{\n  \"start\": \"Chicago, IL\"\n}" }
+      }
+    }
+  ]
+}
