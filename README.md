@@ -11,8 +11,8 @@ POST /api/route/   {"start": "Chicago, IL", "finish": "Dallas, TX"}
 ```
 
 - **One routing API call** per new request (OpenRouteService, truck profile).
-- **About 2 seconds** for a new cross-country route, almost all of it waiting on the
-  routing API; **under 5 ms** on the server for a repeated request (cached).
+- **About 2–3 seconds** for a new route, almost all of it waiting on the routing API;
+  **about 5–10 ms** on the server for a repeated request (cached).
 - Fuel prices come from the supplied CSV; stations are located and indexed offline,
   so a request never geocodes stations.
 
@@ -71,7 +71,7 @@ Response (trimmed):
   "assumptions": {"range_miles": 500.0, "mpg": 10.0, "tank_gallons": 50.0, "start_fuel_gallons": 0.0,
                   "corridor_miles": 10.0, "start_radius_miles": 25.0, "stations_considered": 189},
   "map_url": "http://127.0.0.1:8000/api/route/30fdc8c0a8e7138c/map/",
-  "meta": {"cached": false, "elapsed_ms": 1894.4}
+  "meta": {"cached": false, "elapsed_ms": 1971.1}
 }
 ```
 
@@ -146,11 +146,11 @@ The supplied CSV has 8,151 rows but no coordinates. `build_stations` cleans it o
 
 | Route | Distance | Stops | Fuel cost | First request | Repeat |
 |---|---|---|---|---|---|
-| Chicago, IL → Dallas, TX | 966 mi | 7 | $284.62 | 1.9 s | 5 ms |
-| 41.8781,-87.6298 → Denver, CO | 1,001 mi | 7 | $291.13 | 1.6 s | cached |
-| Atlanta, GA → Houston, TX (30 gal at start) | 797 mi | 6 | $141.10 | 1.7 s | cached |
-| New York, NY → Los Angeles, CA | 2,812 mi | 17 | $852.84 | 2.3 s | cached |
-| Miami, FL → Seattle, WA | 3,295 mi | 20 | $1,005.18 | 2.1 s | cached |
+| Chicago, IL → Dallas, TX | 966 mi | 7 | $284.62 | 2.0 s | 10 ms |
+| 41.8781,-87.6298 → Denver, CO | 1,001 mi | 7 | $291.13 | 2.1 s | 4 ms |
+| Atlanta, GA → Houston, TX (30 gal at start) | 797 mi | 6 | $141.06 | 1.7 s | – |
+| New York, NY → Los Angeles, CA | 2,812 mi | 17 | $852.84 | 2.8 s | – |
+| Miami, FL → Seattle, WA | 3,295 mi | 20 | $1,005.18 | 2.6 s | – |
 
 Almost all of the first-request time is the OpenRouteService call; this app's own
 work (corridor search + optimisation) takes about 20–150 ms.
@@ -178,7 +178,7 @@ routing/
   management/commands/      build_places, build_stations
 data/                       raw CSV, places list, cleaned stations
 docs/design.md              design notes
-tests/                      58 tests (pytest)
+tests/                      66 tests (pytest)
 ```
 
 ## Tests
